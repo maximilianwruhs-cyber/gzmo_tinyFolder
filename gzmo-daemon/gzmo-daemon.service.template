@@ -1,0 +1,28 @@
+[Unit]
+Description=GZMO Daemon — Sovereign AI Heartbeat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# No User=: user units already run as the session user; User=%u can fail (216/GROUP).
+# Template: install via ./install_service.sh (substitutes daemon dir, bun, wait script).
+WorkingDirectory=__GZMO_DAEMON_DIR__
+EnvironmentFile=__GZMO_DAEMON_DIR__/.env
+ExecStartPre=__WAIT_FOR_OLLAMA__
+ExecStart=__BUN_BIN__ run index.ts
+Restart=on-failure
+RestartSec=10
+
+# Ollama performance tuning (if Ollama runs on same host)
+Environment=OLLAMA_KV_CACHE_TYPE=q8_0
+Environment=OLLAMA_FLASH_ATTENTION=1
+Environment=OLLAMA_KEEP_ALIVE=-1
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gzmo-daemon
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,15 @@
+# env / secrets
+gzmo-daemon/.env
+*.env.local
+
+# deps
+gzmo-daemon/node_modules/
+node_modules/
+
+# build / logs
+*.log
+.DS_Store
+gzmo-daemon/doctor-report.*
+
+# vault data (never commit)
+**/GZMO/embeddings.json

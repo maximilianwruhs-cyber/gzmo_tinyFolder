@@ -1,0 +1,66 @@
+import type { TaskRequest, PipelineContext, TaskPipeline } from "./types";
+import { gatherVaultStateIndex } from "../platform/vault_state_index";
+import { gatherLocalFacts } from "../rag/local_facts";
+import { buildProjectGrounding } from "../rag/project_grounding";
+import { buildSystemPrompt, shouldInjectProjectGrounding, parseAction } from "./helpers";
+import { checkChainChecklist, enforceChainChecklist } from "../platform/chain_enforce";
+import { checkThinkClarification } from "../clarification/think_clarification";
+
+export class ThinkPipeline implements TaskPipeline {
+  async prepare(req: TaskRequest): Promise<PipelineContext> {
+    const { event, pulse, memory, vaultRoot } = req;
+    const { body, frontmatter } = event;
+    const action = parseAction(frontmatter ?? {});
+    
+    let projectGrounding = "";
+    let projectAllowedPaths: string[] = [];
+    if (shouldInjectProjectGrounding(action, body)) {
+      const [vsi, lf] = await Promise.all([
+        gatherVaultStateIndex({ vaultPath: vaultRoot, query: body }).catch(() => ""),
+        gatherLocalFacts({ vaultPath: vaultRoot, query: body }).catch(() => ""),
+      ]);
+      const built = buildProjectGrounding(vaultRoot, vsi, lf);
+      projectGrounding = built.text.trim();
+      projectAllowedPaths = built.allowedPaths;
+    }
+    
+    const snap = pulse?.snapshot();
+    const memoryContext = memory?.toPromptContext();
+    const systemPrompt = buildSystemPrompt(snap, undefined, memoryContext, projectGrounding);
+
+    const thinkHalt = await checkThinkClarification({
+      vaultRoot,
+      body,
+      embeddingStore: req.embeddingStore,
+    });
+    if (thinkHalt) {
+      return {
+        vaultContext: "",
+        systemPrompt,
+        haltReason: thinkHalt,
+        state: { projectGrounding, projectAllowedPaths },
+      };
+    }
+
+    return {
+      vaultContext: "",
+      systemPrompt,
+      state: { projectGrounding, projectAllowedPaths },
+    };
+  }
+
+  async validateAndShape(rawOutput: string, req: TaskRequest, ctx: PipelineContext): Promise<string> {
+    const action = parseAction(req.event.frontmatter ?? {});
+    let finalOutput = rawOutput;
+    
+    if (action === "chain") {
+      const check = checkChainChecklist({ userPrompt: req.event.body, answer: finalOutput });
+      const hasChain = check.violations.length === 0;
+      if (!hasChain) {
+        finalOutput = enforceChainChecklist({ userPrompt: req.event.body, answer: finalOutput }).out;
+      }
+    }
+    
+    return finalOutput;
+  }
+}

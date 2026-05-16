@@ -1,0 +1,47 @@
+{
+  "name": "gzmo-daemon",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run index.ts",
+    "summon": "bun run index.ts",
+    "dev": "bun --watch run index.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "bun run typecheck && bun test",
+    "eval:quality": "bun run src/eval_harness.ts",
+    "proof:local-vault": "bun run proof_local_vault.ts",
+    "smoke:full": "bun run smoke && bun run proof:local-vault",
+    "lint:once": "bun run lint_once.ts",
+    "doctor": "bun run doctor.ts",
+    "trace:view": "bun run src/trace_viewer.ts",
+    "ledger:analyze": "bun run src/learning/analyze.ts",
+    "trace:sync": "bun run src/learning/sync_traces_cli.ts",
+    "benchmark": "bun run src/perf_benchmark.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.12",
+    "@types/papaparse": "5.5.2",
+    "@types/yauzl": "2.10.3",
+    "fflate": "0.8.2",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.41",
+    "ai": "^6.0.168",
+    "chokidar": "^5.0.0",
+    "html-to-text": "10.0.0",
+    "mammoth": "1.12.0",
+    "papaparse": "5.5.3",
+    "pdf-parse": "2.4.5",
+    "remark-frontmatter": "^5.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
+    "yaml": "2.8.4",
+    "yauzl": "3.3.0"
+  }
+}
