@@ -82,6 +82,7 @@ agentic-setup plan:
   systemd:      $with_systemd
   pi:           $with_pi  skip_pi=$skip_pi
   api:          $with_api
+  plugins:      ${plugins:-"(none)"}
   force_env:    $force_env
 EOF
 }
