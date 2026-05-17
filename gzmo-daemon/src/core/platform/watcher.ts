@@ -37,10 +37,17 @@ export class VaultWatcher extends EventEmitter {
     console.log(`[WATCHER] Watching: ${this.inboxPath}`);
 
     this.watcher = watch(this.inboxPath, {
-      ignored: [
-        /(^|[\/\\])\.../,  // dotfiles
-        /Subtasks/,       // subagent directory handled separately
-      ],
+      // Ignore dotfiles and Subtasks by basename/path only — regex on full path
+      // incorrectly matches `/.g` in `~/.gzmo-vault/.../Inbox` and skips the inbox.
+      ignored: (filePath: string) => {
+        const base = basename(filePath);
+        if (base.startsWith(".")) return true;
+        return (
+          base === "Subtasks" ||
+          filePath.includes("/Subtasks/") ||
+          filePath.includes("\\Subtasks\\")
+        );
+      },
       persistent: true,
       ignoreInitial: false, // Scan existing files on startup
       depth: 0,             // Only watch top-level Inbox, not subdirs
